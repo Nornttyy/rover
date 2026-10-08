@@ -1,0 +1,11 @@
+{
+  "name": "rover",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8790 --bind 127.0.0.1",
+    "test": "node --test tests/rover-*.test.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}

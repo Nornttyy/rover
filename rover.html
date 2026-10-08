@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#14394b">
+  <title>移动基地</title>
+  <meta name="description" content="驾驶、改装、接挂装备，在不规则城区中生存并带回零件。竖屏驾驶生存肉鸽，支持触屏与键盘。">
+  <meta property="og:title" content="移动基地">
+  <meta property="og:description" content="驾驶、升级、改装，带着拖挂冲出追兵。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nornttyy.github.io/rover/">
+  <meta property="og:image" content="https://nornttyy.github.io/rover/assets/rover/base-v8.png">
+  <link rel="canonical" href="https://nornttyy.github.io/rover/">
+  <link rel="icon" type="image/png" href="./assets/rover/atlas-v1.png">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#14394b}
+    body{display:grid;place-items:center;overscroll-behavior:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+    #rover{display:block;width:min(100vw,480px);height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(min(100vw,480px) * 2.35);outline:none;touch-action:none;background:#14394b}
+    #load-error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:24px;max-width:85vw;border-radius:20px;background:#1a4458;color:#f3fcff;font:14px system-ui;text-align:center}
+    #load-error[hidden]{display:none}#retry{display:block;margin:16px auto 0;background:#ff8440;border:0;border-radius:12px;padding:12px 25px;color:#152b40;font:700 16px system-ui}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  </style>
+</head>
+<body>
+  <canvas id="rover" tabindex="0" role="application" aria-label="移动基地。拖动驾驶或使用方向键、WASD；Shift 冲撞；升级时选择卡牌；空格接挂或撤离；Escape 暂停。"></canvas>
+  <p id="game-status" class="sr-only" aria-live="polite"></p>
+  <div id="load-error" hidden>素材未能载入<button type="button" id="retry">重新加载</button></div>
+  <script type="module" src="./src/rover/web.js?v=8"></script>
+</body>
+</html>

@@ -1,12 +1,12 @@
-import {WORLD,LEGACY_WORLD,LEGACY2_WORLD,LEGACY_CACHES,LEGACY2_CACHES,DRIVE,ENEMIES,CACHES,terrainBlocked,MODULE_BY_ID,powerOf,clamp,dist,angleTo,angleDelta,statsFor} from './data.js?v=8';
-import {newConvoy,attach,detach,logisticsContext,logisticsStep,ramImpacts,convoyTarget,hitTarget,hurtTrailer,cleanConvoy} from './logistics.js?v=8';
-import {navigationTarget,roadPoint} from './navigation.js?v=8';
-import {newRogue,rank,skill,damageScale,boostCooldown,pickupRadius,syncStats,grantXP,choose,reroll,rogueWeapons,firePrimary,cleanRogue} from './rogue.js?v=8';
-import {driveMotion} from './drive.js?v=8';
+import {WORLD,MAP_REVISION,LEGACY_WORLD,LEGACY2_WORLD,LEGACY_CACHES,LEGACY2_CACHES,DRIVE,ENEMIES,CACHES,terrainBlocked,MODULE_BY_ID,powerOf,clamp,dist,angleTo,angleDelta,statsFor} from './data.js?v=9';
+import {newConvoy,attach,detach,logisticsContext,logisticsStep,ramImpacts,convoyTarget,hitTarget,hurtTrailer,cleanConvoy} from './logistics.js?v=9';
+import {navigationTarget,roadPoint} from './navigation.js?v=9';
+import {newRogue,rank,skill,damageScale,boostCooldown,pickupRadius,syncStats,grantXP,choose,reroll,rogueWeapons,firePrimary,cleanRogue} from './rogue.js?v=9';
+import {driveMotion} from './drive.js?v=9';
 export const STEP=1/60;
 export class Expedition{
   constructor(modules=[],seed=9031){
-    this.version=3;this.modules=[...modules];this.seed=seed>>>0;this.time=0;this.phase='play';this.result=null;this.rogue=newRogue();this.convoy=newConvoy();this.secured=0;
+    this.version=3;this.mapRevision=MAP_REVISION;this.modules=[...modules];this.seed=seed>>>0;this.time=0;this.phase='play';this.result=null;this.rogue=newRogue();this.convoy=newConvoy();this.secured=0;
     const stats=statsFor(modules);this.player={x:WORLD.home.x,y:WORLD.home.y+170,a:0,vx:0,vy:0,r:23,hp:stats.hp,maxHp:stats.hp,speed:stats.speed,capacity:stats.capacity,cargo:0,invuln:0,lastHit:-9,repairUsed:0,boostTime:0,boostCooldown:0};
     this.enemies=[];this.bullets=[];this.effects=[];this.drops=[];this.mortars=[];this.mines=[];this.oil=[];this.events=[];this.caches=CACHES.map(c=>({...c,...roadPoint(this,c),open:false,progress:0}));
     for(const f of this.convoy.freight)Object.assign(f,roadPoint(this,f));
@@ -130,6 +130,7 @@ export class Expedition{
     if(Object.hasOwn(raw,'fxId')&&(!Number.isSafeInteger(raw.fxId)||raw.fxId<0)||Object.hasOwn(raw,'sideA')&&!Number.isFinite(raw.sideA))return null;
     if(!finite(raw.player,['x','y','a','vx','vy','hp','maxHp','speed','cargo','capacity','r','lastHit','invuln','repairUsed'])||raw.player.hp<=0||raw.player.cargo<0||raw.player.cargo>999999)return null;
     if(!Array.isArray(raw.enemies)||raw.enemies.length>80||!raw.enemies.every(e=>ENEMIES[e.kind]&&finite(e,['id','x','y','a','r','hp','maxHp','speed','born','fire','clock','hit','chargeA'])&&['walk','aim','charge','rest'].includes(e.mode))||!Array.isArray(raw.bullets)||raw.bullets.length>300||!raw.bullets.every(b=>finite(b,['x','y','px','py','vx','vy','life','damage','r'])&&b.damage>=0)||!Array.isArray(raw.caches)||!Array.isArray(raw.drops)||raw.drops.length>300||!Array.isArray(raw.mortars)||raw.mortars.length>20||!finite(raw,['seed','id','spawnClock','spawnIndex','shots','kills','damageTaken','turretA'])||!finite(raw.cooldowns,['gun','side','flame']))return null;
+    if(raw.mapRevision!==undefined&&(!Number.isSafeInteger(raw.mapRevision)||raw.mapRevision<1||raw.mapRevision>MAP_REVISION))return null;
     const fresh=new Expedition(raw.modules,raw.seed),legacy=raw.version<3;
     if(legacy){
       const bases=raw.version===1?LEGACY_CACHES:LEGACY2_CACHES,bounds=raw.version===1?LEGACY_WORLD:LEGACY2_WORLD;
@@ -141,10 +142,16 @@ export class Expedition{
       }return fresh;
     }
     const rogue=cleanRogue(raw.rogue),convoy=cleanConvoy(raw.convoy);if(!rogue||!convoy||raw.caches.length!==CACHES.length||!raw.caches.every((c,i)=>c.id===i&&finite(c,['x','y','value','progress'])&&c.x===fresh.caches[i].x&&c.y===fresh.caches[i].y)||!raw.drops.every(d=>['xp','scrap'].includes(d.kind)&&finite(d,['id','x','y','value','life'])&&d.value>0)||!raw.mortars.every(m=>finite(m,['x','y','clock','total','r']))||!Array.isArray(raw.mines)||raw.mines.length>24||!raw.mines.every(m=>finite(m,['x','y','life','arm']))||!Array.isArray(raw.oil)||raw.oil.length>22||!raw.oil.every(o=>finite(o,['x','y','life'])))return null;
-    for(const key of Object.keys(fresh))if(Object.hasOwn(raw,key)&&!['rogue','convoy','version'].includes(key))fresh[key]=raw[key];fresh.rogue=rogue;fresh.convoy=convoy;
+    for(const key of Object.keys(fresh))if(Object.hasOwn(raw,key)&&!['rogue','convoy','version','mapRevision'].includes(key))fresh[key]=raw[key];fresh.rogue=rogue;fresh.convoy=convoy;
     fresh.player={boostTime:0,boostCooldown:0,...fresh.player};if(!finite(fresh.player,['boostTime','boostCooldown'])||fresh.player.boostTime<0||fresh.player.boostCooldown<0||Object.values(fresh.cooldowns).some(v=>!Number.isFinite(v)))return null;
     const savedSpeed=raw.player.speed,savedMax=raw.player.maxHp;syncStats(fresh);if(Math.abs(savedSpeed-fresh.player.speed)>.001||savedMax!==fresh.player.maxHp||raw.player.hp>fresh.player.maxHp||raw.player.x<23||raw.player.x>WORLD.w-23||raw.player.y<23||raw.player.y>WORLD.h-23||raw.player.r!==23||!Number.isFinite(raw.secured)||raw.secured<0)return null;
     for(const b of fresh.bullets){if(!Array.isArray(b.hitIds)||b.hitIds.length>20||!Number.isSafeInteger(b.pierce)||b.pierce<0||b.pierce>4||!Number.isSafeInteger(b.bounce)||b.bounce<0||b.bounce>4)return null;}
+    if(raw.mapRevision!==MAP_REVISION){
+      // Preserve an active v8 run. Only actors covered by the newly painted roof move to a safe road.
+      for(const actor of [fresh.player,...fresh.enemies,...fresh.convoy.trailers,...fresh.convoy.loose,...fresh.convoy.freight])if(fresh.blocked(actor.x,actor.y,actor.r)){
+        Object.assign(actor,roadPoint(fresh,actor));if(actor===fresh.player){actor.vx=actor.vy=0;}
+      }
+    }
     fresh.events=[];fresh.effects=[];fresh.result=null;fresh.cancelInteract();return fresh;
   }
 }

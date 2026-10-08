@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {inflateSync} from 'node:zlib';
-import {IMAGES,EQUIPMENT_SPRITES,COMPOUND_SPRITES,SCENERY_SPRITES,equipmentRegion,extractionRegion,compoundRegion,sceneryRegion} from '../src/rover/assets.js';
+import {IMAGES,EQUIPMENT_SPRITES,equipmentRegion} from '../src/rover/assets.js';
 function decode(path){
   const png=readFileSync(new URL('../'+path,import.meta.url)),width=png.readUInt32BE(16),height=png.readUInt32BE(20),chunks=[];
   assert.equal(png[24],8);assert.equal(png[25],6);assert.equal(png[28],0);
@@ -14,7 +14,8 @@ function decode(path){
 }
 test('active map, equipment and recovery bay use delivered production PNGs, not missing placeholders',()=>{
   for(const path of Object.values(IMAGES)){const png=readFileSync(new URL('../'+path,import.meta.url));assert.equal(png.subarray(1,4).toString(),'PNG');assert.ok(png.length>50000);}
-  assert.equal('map' in IMAGES,false,'a thumbnail must not be stretched across the live world');assert.equal('buildings' in IMAGES,false);assert.match(IMAGES.compoundsA,/compounds-a-v8/);assert.match(IMAGES.compoundsB,/compounds-b-v8/);assert.match(IMAGES.base,/base-v8/);assert.match(IMAGES.scenery,/scenery-v6/);
+  assert.match(IMAGES.map,/district-v9/);for(const id of ['buildings','compoundsA','compoundsB','scenery','extraction'])assert.equal(id in IMAGES,false,'no static scenery atlas '+id);
+  assert.match(IMAGES.base,/base-v8/);
   assert.doesNotMatch(readFileSync(new URL('../src/rover/render.js',import.meta.url),'utf8'),/convoy:depot|accept-contract|beginDelivery/);
 });
 test('all 12 equipment sprites have measured, non-overlapping crops with real transparent edges',()=>{
@@ -25,5 +26,7 @@ test('all 12 equipment sprites have measured, non-overlapping crops with real tr
     let opaque=0;for(let yy=y;yy<y+h;yy+=4)for(let xx=x;xx<x+w;xx+=4)opaque+=image.alpha(xx,yy)>40;assert.ok(opaque>1000,id+' is empty');
   }
 });
-test('recovery bay is a tall transparent sprite with an empty drivable apron',()=>{const image=decode(IMAGES.extraction),[x,y,w,h]=extractionRegion(image);assert.ok(x>=0&&y>=0&&x+w<=image.width&&y+h<=image.height);assert.ok(h>w*1.4);assert.equal(image.alpha(0,0),0);assert.ok(image.alpha(570,900)>200);});
-test('eight complete locations and street details have separate transparent crops',()=>{for(const key of ['compoundsA','compoundsB','scenery']){const boxes=key==='scenery'?SCENERY_SPRITES:Object.fromEntries(Object.entries(COMPOUND_SPRITES).filter(([,v])=>v.sheet===key).map(([id,v])=>[id,v.box])),region=key==='scenery'?sceneryRegion:compoundRegion,image=decode(IMAGES[key]),rects=Object.keys(boxes).map(id=>({id,box:region(image,id)}));assert.equal(rects.length,key==='scenery'?12:4);for(const {id,box:[x,y,w,h]} of rects){assert.ok(x>=0&&y>=0&&x+w<=image.width&&y+h<=image.height);for(const other of rects){if(other.id===id)continue;const [a,b,c,d]=other.box;assert.ok(x+w<=a||a+c<=x||y+h<=b||b+d<=y,id+' shares neighbour pixels');}for(let i=0;i<w;i++)assert.ok(image.alpha(x+i,y)<=32&&image.alpha(x+i,y+h-1)<=32,id+' top/bottom clipping');for(let i=0;i<h;i++)assert.ok(image.alpha(x,y+i)<=32&&image.alpha(x+w-1,y+i)<=32,id+' side clipping');}}});
+test('whole map is the delivered opaque illustration, with its actual resolution recorded rather than faked upscaling',()=>{
+  const png=readFileSync(new URL('../'+IMAGES.map,import.meta.url));assert.equal(png.readUInt32BE(16),1254);assert.equal(png.readUInt32BE(20),1254);
+  if(png[25]===6){const image=decode(IMAGES.map);for(let y=0;y<image.height;y+=31)for(let x=0;x<image.width;x+=31)assert.equal(image.alpha(x,y),255);}
+});

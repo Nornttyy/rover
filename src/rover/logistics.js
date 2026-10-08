@@ -1,5 +1,5 @@
-import {WORLD,FREIGHT,dist,angleTo,angleDelta,DRIVE} from './data.js?v=8';
-import {damageScale} from './rogue.js?v=8';
+import {WORLD,FREIGHT,dist,angleTo,angleDelta,DRIVE} from './data.js?v=9';
+import {damageScale} from './rogue.js?v=9';
 export const MAX_TRAILERS=4;
 export function newConvoy(){return{trailers:[],loose:[],freight:FREIGHT.map(f=>({...f})),peak:0,boostId:0};}
 export function attach(s,f){

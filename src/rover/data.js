@@ -3,6 +3,9 @@ export const SAVE_KEY='mobile-base-v1';
 export const LEGACY_WORLD={w:960,h:1440,home:{x:480,y:1270,r:92},duration:180};
 export const LEGACY2_WORLD={w:1920,h:2880,home:{x:960,y:2510,r:100},duration:480};
 export const WORLD={w:6144,h:6144,home:{x:3200,y:3280,r:105}};
+export const MAP_REVISION=9;
+// Measured from district-v9.png (1254 x 1254), not the retired separate bay sprite.
+export const RECOVERY_ROOF={x:622/1254*WORLD.w,y:572/1254*WORLD.h,w:76/1254*WORLD.w,h:36/1254*WORLD.h};
 export const DRIVE={speed:224,boostTime:.65,boostCooldown:3.5,boostMultiplier:1.85,ramDamage:60,gunInterval:.34};
 export const MODULES=[
   {id:'drill',name:'冲撞钻头',sprite:'drill',cost:320,power:2,x:0,y:-42,angle:0,brief:'车头撞击 · 35 伤害/秒',detail:'向前顶住敌人持续伤害。撞击时仍会受伤。'},
@@ -90,8 +93,8 @@ export const ISLANDS=[
 export const BLOCKS=ISLANDS.map(points=>({x:Math.min(...points.map(p=>p.x)),y:Math.min(...points.map(p=>p.y)),w:Math.max(...points.map(p=>p.x))-Math.min(...points.map(p=>p.x)),h:Math.max(...points.map(p=>p.y))-Math.min(...points.map(p=>p.y)),points}));
 export function terrainBlocked(x,y,r=23){
   if(x<r||y<r||x>WORLD.w-r||y>WORLD.h-r)return true;
-  // Physical roof of the recovery garage; its apron remains freely drivable.
-  if(x+r>WORLD.home.x-122&&x-r<WORLD.home.x+122&&y+r>WORLD.home.y-250&&y-r<WORLD.home.y-162)return true;
+  // Only the roof painted in the full map blocks motion; the apron is drive-over.
+  if(x+r>RECOVERY_ROOF.x&&x-r<RECOVERY_ROOF.x+RECOVERY_ROOF.w&&y+r>RECOVERY_ROOF.y&&y-r<RECOVERY_ROOF.y+RECOVERY_ROOF.h)return true;
   for(const b of BLOCKS){if(x+r<b.x||x-r>b.x+b.w||y+r<b.y||y-r>b.y+b.h)continue;let inside=false;for(let i=0,j=b.points.length-1;i<b.points.length;j=i++){
     const a=b.points[j],p=b.points[i];if((a.y>y)!==(p.y>y)&&x<(p.x-a.x)*(y-a.y)/(p.y-a.y)+a.x)inside=!inside;
     const dx=p.x-a.x,dy=p.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy)));if(Math.hypot(x-a.x-dx*t,y-a.y-dy*t)<r)return true;

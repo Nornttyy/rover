@@ -1,8 +1,8 @@
-import {WORLD,DRIVE,TRAILER_NAMES,MODULES,MODULE_BY_ID,powerOf,statsFor,clamp,dist} from './data.js?v=8';
-import {region,fxRegion,convoyRegion,equipmentRegion,extractionRegion} from './assets.js?v=8';
-import {UPGRADE_BY_ID,rank,skill,gunInterval,boostCooldown} from './rogue.js?v=8';
-import {RoverTerrain} from './terrain.js?v=8';
-import {STICK,followCamera} from './feel.js?v=8';
+import {WORLD,DRIVE,TRAILER_NAMES,MODULES,MODULE_BY_ID,powerOf,statsFor,clamp,dist} from './data.js?v=9';
+import {region,fxRegion,convoyRegion,equipmentRegion} from './assets.js?v=9';
+import {UPGRADE_BY_ID,rank,skill,gunInterval,boostCooldown} from './rogue.js?v=9';
+import {RoverTerrain} from './terrain.js?v=9';
+import {STICK,followCamera} from './feel.js?v=9';
 const C={ink:'#142d41',white:'#f2fcff',teal:'#57e4c5',orange:'#ff914e',muted:'#9bb8c8',red:'#ff687a'};
 const FONT='"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
 const ENEMY_SIZE={drone:[45,43],spitter:[49,46],ram:[43,53],boss:[144,125],raider:[45,53]};
@@ -20,7 +20,7 @@ export class RoverRenderer{
   point(x,y){return{x:x/this.layout.scale,y:y/this.layout.scale};}
   crop(id,tint=null){
     const key=id+(tint?':'+tint:'');let surface=this.sprites.get(key);if(surface)return surface;
-    const fx=id.startsWith('fx:'),convoy=id.startsWith('convoy:'),equipment=id.startsWith('equip:'),image=id==='extraction'?this.images.extraction:fx?this.images.effects:convoy?this.images.convoy:equipment?this.images.equipment:this.images.atlas,box=id==='extraction'?extractionRegion(image):fx?fxRegion(image,id.slice(3)):convoy?convoyRegion(image,id.slice(7)):equipment?equipmentRegion(image,id.slice(6)):region(image,id);
+    const fx=id.startsWith('fx:'),convoy=id.startsWith('convoy:'),equipment=id.startsWith('equip:'),image=fx?this.images.effects:convoy?this.images.convoy:equipment?this.images.equipment:this.images.atlas,box=fx?fxRegion(image,id.slice(3)):convoy?convoyRegion(image,id.slice(7)):equipment?equipmentRegion(image,id.slice(6)):region(image,id);
     if(!box||!image?.width)return null;
     surface=this.createSurface(Math.ceil(box[2]),Math.ceil(box[3]));if(!surface)return null;
     const ctx=surface.getContext('2d');if(!ctx)return null;ctx.drawImage(image,...box,0,0,surface.width,surface.height);
@@ -179,11 +179,7 @@ export class RoverRenderer{
   }
   extraction(g){
     const home=WORLD.home,s=g.run,c=this.ctx,active=s.interacting&&s.target==='home',near=dist(s.player,home)<home.r,progress=active?clamp(s.extract/3.5,0,1):0;
-    const bay=this.crop('extraction'),w=256,h=392,left=home.x-w/2,top=home.y-250;
-    if(bay)c.drawImage(bay,left,top,w,h);
-    // Retract the actual painted shutter within its doorway; keep the apron unobstructed.
-    const open=active?clamp(s.extract/.7,0,1):near?.55:0;
-    if(bay&&open>0){const sx=204,sy=273,sw=386,sh=107,dx=left+sx/794*w,dy=top+sy/1213*h,dw=sw/794*w,dh=sh/1213*h;c.save();c.beginPath();c.rect(dx,dy,dw,dh);c.clip();c.fillStyle='#092939';c.fillRect(dx,dy,dw,dh);c.drawImage(bay,sx/794*bay.width,sy/1213*bay.height,sw/794*bay.width,sh/1213*bay.height,dx,dy-dh*open,dw,dh);c.restore();}
+    // The roof and apron are baked into the generated map; only interaction feedback overlays it.
     if(near){this.rr(home.x-72,home.y+104,144,30,8,'#14394ee6');this.text(active?(Math.max(1,Math.ceil(3.5-s.extract))+' 秒 · 撤离'):s.context()?.kind==='extract'?'停车撤离':'回收车库',home.x,home.y+119,12,C.white,'center');}
     if(active){this.circle(home.x,home.y,88,null,'#5ee5c760',2);c.beginPath();c.arc(home.x,home.y,88,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);c.strokeStyle=C.teal;c.lineWidth=5;c.stroke();this.sprite('fx:glint',home.x,home.y-4,92,92,0,.2+progress*.35);}
   }

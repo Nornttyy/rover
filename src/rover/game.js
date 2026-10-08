@@ -1,9 +1,9 @@
-import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=8';
-import {Expedition,STEP} from './core.js?v=8';
-import {IMAGES} from './assets.js?v=8';
-import {RoverRenderer} from './render.js?v=8';
-import {RoverFeel,steerStick} from './feel.js?v=8';
-import {roadPoint} from './navigation.js?v=8';
+import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=9';
+import {Expedition,STEP} from './core.js?v=9';
+import {IMAGES} from './assets.js?v=9';
+import {RoverRenderer} from './render.js?v=9';
+import {RoverFeel,steerStick} from './feel.js?v=9';
+import {roadPoint} from './navigation.js?v=9';
 export class RoverGame{
   constructor({canvas,createImage,createSurface,storage,audio,reducedMotion=false}){
     this.canvas=canvas;this.createImage=createImage;this.images={};this.storage=storage;this.audio=audio;this.reducedMotion=reducedMotion;

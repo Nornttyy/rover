@@ -1,4 +1,4 @@
-export const IMAGES={atlas:'assets/rover/atlas-v1.png',garage:'assets/rover/garage-v1.png',base:'assets/rover/base-v8.png',effects:'assets/rover/effects-v2.png',convoy:'assets/rover/convoy-v3.png',equipment:'assets/rover/equipment-v5.png',extraction:'assets/rover/extraction-v5.png',compoundsA:'assets/rover/compounds-a-v8.png',compoundsB:'assets/rover/compounds-b-v8.png',scenery:'assets/rover/scenery-v6.png'};
+export const IMAGES={atlas:'assets/rover/atlas-v1.png',garage:'assets/rover/garage-v1.png',base:'assets/rover/base-v8.png',effects:'assets/rover/effects-v2.png',convoy:'assets/rover/convoy-v3.png',equipment:'assets/rover/equipment-v5.png',map:'assets/rover/district-v9.png'};
 // Alpha bounds measured from the delivered atlas, with a transparent guard around every sprite.
 const boxes={
   truck:[38,32,255,274],gun:[383,46,199,246],drill:[652,36,275,266],side:[1006,47,199,254],

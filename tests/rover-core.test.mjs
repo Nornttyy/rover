@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Expedition,STEP} from '../src/rover/core.js';
-import {WORLD,ISLANDS,DRIVE,dist,newProfile,purchase,equip,cleanProfile,powerOf,MODULES} from '../src/rover/data.js';
+import {WORLD,ISLANDS,RECOVERY_ROOF,DRIVE,dist,newProfile,purchase,equip,cleanProfile,powerOf,MODULES} from '../src/rover/data.js';
 import {UPGRADES,grantXP,rank,syncStats,pickupRadius,gunInterval} from '../src/rover/rogue.js';
 const advance=(s,seconds,input={x:0,y:0},pick=true)=>{for(let i=0;i<Math.ceil(seconds/STEP)&&s.phase==='play';i++){if(pick&&s.rogue.offer.length)s.choose(s.rogue.offer[0]);s.step(STEP,input);}};
 test('new prices charge the exact purchase boundary, never recharge existing gear or invalidate an older inventory',()=>{
@@ -21,14 +21,18 @@ test('large irregular map: all pickups and garage reachable from the same road n
   const size=48,cols=WORLD.w/size,cell=p=>Math.floor(p.y/size)*cols+Math.floor(p.x/size),seen=new Set([cell(WORLD.home)]),queue=[cell(WORLD.home)];
   for(let i=0;i<queue.length;i++){const k=queue[i],x=k%cols,y=Math.floor(k/cols);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,n=ny*cols+nx;if(nx<0||ny<0||nx>=cols||ny>=cols||seen.has(n)||s.blocked((nx+.5)*size,(ny+.5)*size,29))continue;seen.add(n);queue.push(n);}}
   for(const p of points){const x=Math.floor(p.x/size),y=Math.floor(p.y/size);assert.ok([[0,0],[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>seen.has((y+dy)*cols+x+dx)),JSON.stringify(p));}
-  assert.equal(s.blocked(WORLD.home.x,WORLD.home.y-210),true);assert.equal(s.blocked(WORLD.home.x,WORLD.home.y),false);
+  assert.equal(s.blocked(RECOVERY_ROOF.x+RECOVERY_ROOF.w/2,RECOVERY_ROOF.y+RECOVERY_ROOF.h/2),true);assert.equal(s.blocked(WORLD.home.x,WORLD.home.y),false);
 });
 test('crates are drive-over, one-time pickups; no parking task or cargo-cap soft lock',()=>{const s=quiet(),c=s.caches[0];c.open=false;s.player.x=c.x;s.player.y=c.y;s.player.cargo=90;s.step();assert.equal(c.open,true);assert.equal(s.player.cargo,102);assert.equal(s.rogue.xp,6);s.step();assert.equal(s.player.cargo,102);assert.equal(s.rogue.xp,6);});
 test('damage immunity, capped permanent repair and charged shields operate independently',()=>{
   const s=quiet(['repair']);s.hurtPlayer(40);s.hurtPlayer(40);assert.equal(s.player.hp,90);advance(s,4.8);assert.equal(s.player.hp,90);advance(s,35);assert.ok(s.player.hp>120);s.hurtPlayer(100);advance(s,100);assert.ok(s.player.repairUsed<=50);assert.ok(s.player.hp<90);
   const t=quiet();cards(t,{shield:2});t.rogue.shield=50;t.hurtPlayer(30);assert.equal(t.player.hp,130);assert.equal(t.rogue.shield,20);advance(t,5);assert.ok(t.rogue.shield>25);
 });
-test('short dash responds immediately, has single-activation impacts, and cannot cross garage roof',()=>{const a=quiet(),b=quiet();a.boost();assert.equal(a.boost(),false);advance(a,.6,{x:0,y:-1});advance(b,.6,{x:0,y:-1});assert.ok(b.player.y-a.player.y>70);advance(a,DRIVE.boostCooldown);assert.equal(a.boost(),true);a.player.x=WORLD.home.x;a.player.y=WORLD.home.y-120;advance(a,1,{x:0,y:-1});assert.ok(a.player.y>=WORLD.home.y-140);});
+test('short dash responds immediately, has single-activation impacts, and cannot cross garage roof',()=>{const a=quiet(),b=quiet();a.boost();assert.equal(a.boost(),false);advance(a,.6,{x:0,y:-1});advance(b,.6,{x:0,y:-1});assert.ok(b.player.y-a.player.y>70);advance(a,DRIVE.boostCooldown);assert.equal(a.boost(),true);a.player.x=RECOVERY_ROOF.x+RECOVERY_ROOF.w/2;a.player.y=RECOVERY_ROOF.y+RECOVERY_ROOF.h+50;advance(a,1,{x:0,y:-1});assert.ok(a.player.y>=RECOVERY_ROOF.y+RECOVERY_ROOF.h+23);});
+test('v8 run migration preserves equipment, earned cargo and cards while relocating a player under the new painted roof',()=>{
+  const s=quiet(['armor','rocket']);cards(s,{twin:2,shield:1});s.player.cargo=43;s.time=61;s.player.x=RECOVERY_ROOF.x+RECOVERY_ROOF.w/2;s.player.y=RECOVERY_ROOF.y+RECOVERY_ROOF.h/2;
+  const raw=s.snapshot();delete raw.mapRevision;const restored=Expedition.restore(raw);assert.ok(restored);assert.equal(restored.mapRevision,9);assert.equal(restored.player.cargo,43);assert.deepEqual(restored.modules,s.modules);assert.deepEqual(restored.rogue.levels,s.rogue.levels);assert.equal(restored.time,61);assert.equal(restored.blocked(restored.player.x,restored.player.y),false);assert.ok(Expedition.restore(restored.snapshot()));
+});
 test('side cannon needs its right arc; flame attacks behind and drill needs frontal contact',()=>{
   function actor(modules,x,y){const s=quiet(modules);s.cooldowns.gun=999;return{s,e:enemy(s,x,y,'drone')};}
   const right=actor(['side'],140,0);advance(right.s,.1);assert.equal(right.s.shots,1);const left=actor(['side'],-140,0);advance(left.s,.1);assert.equal(left.s.shots,0);

@@ -1,4 +1,4 @@
-import {clamp,angleDelta} from './data.js?v=9';
+import {clamp,angleDelta} from './data.js?v=12';
 
 export const STICK={dead:3,radius:32,follow:32};
 export function steerStick(joy,point){
@@ -20,13 +20,16 @@ export function followCamera(camera,p,dt,{snap=false,reduced=false}={}){
 // Presentation state is separate from combat, saves and the combat random stream.
 export class RoverFeel{
   constructor(){this.reset({x:480,y:1270,a:0});}
-  reset(p){this.last={x:p.x,y:p.y,a:p.a};this.time=0;this.distance=0;this.roll=0;this.kick=0;this.particles=[];this.tracks=[];this.decals=[];this.numbers=[];this.collect=[];this.seenFx=0;this.seed=817;this.dustClock=0;this.trackClock=0;}
+  reset(p){this.last={x:p.x,y:p.y,a:p.a};this.time=0;this.distance=0;this.roll=0;this.kick=0;this.particles=[];this.tracks=[];this.decals=[];this.numbers=[];this.collect=[];this.seenFx=0;this.seed=817;this.dustClock=0;this.trackClock=0;this.hpRatio=p.maxHp?clamp(p.hp/p.maxHp,0,1):1;this.hpEcho=this.hpRatio;this.hpDelay=0;}
   random(){this.seed=(Math.imul(this.seed,1664525)+1013904223)>>>0;return this.seed/4294967296;}
   puff(x,y,kind='dust',scale=1,vx=0,vy=0){this.particles.push({x,y,vx,vy,kind,size:(14+this.random()*10)*scale,a:this.random()*Math.PI*2,life:.5+this.random()*.3,total:.8});if(this.particles.length>64)this.particles.shift();}
   loot(event){this.numbers.push({x:event.x,y:event.y,value:event.value,life:1.05,total:1.05});this.collect.push({x:event.x,y:event.y,life:.58,total:.58});if(this.numbers.length>10)this.numbers.shift();if(this.collect.length>10)this.collect.shift();}
   tick(s,dt,reduced=false){
     if(!s||dt<=0)return;const p=s.player,dx=p.x-this.last.x,dy=p.y-this.last.y,distance=Math.hypot(dx,dy),speed=Math.hypot(p.vx,p.vy),turn=angleDelta(this.last.a,p.a)/dt;
     this.time+=dt;this.distance+=distance;this.roll+=(clamp(-turn*.023,-.09,.09)-this.roll)*(1-Math.exp(-dt*13));this.kick*=Math.exp(-dt*17);
+    const hp=clamp(p.hp/p.maxHp,0,1);if(hp<this.hpRatio)this.hpDelay=.22;
+    this.hpRatio=hp;this.hpDelay=Math.max(0,this.hpDelay-dt);
+    if(reduced||hp>=this.hpEcho)this.hpEcho=hp;else if(this.hpDelay===0)this.hpEcho+=(hp-this.hpEcho)*(1-Math.exp(-dt*8));
     this.dustClock-=dt;this.trackClock-=dt;
     if(!reduced&&distance>.35&&speed>85&&this.dustClock<=0){const back=28,r=Math.sin(p.a),v=Math.cos(p.a);this.puff(p.x-r*back,p.y+v*back,p.boostTime>0?'smoke':'dust',p.boostTime>0?.8:.45,-p.vx*.1,-p.vy*.1);this.dustClock=.075;}
     if(!reduced&&distance>.5&&speed>65&&this.trackClock<=0&&(Math.abs(turn)>.8||p.boostTime>0)){

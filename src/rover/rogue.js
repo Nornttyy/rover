@@ -1,4 +1,4 @@
-import {DRIVE,statsFor,dist,angleTo,clamp} from './data.js?v=9';
+import {DRIVE,statsFor,dist,angleTo,clamp} from './data.js?v=12';
 
 export const UPGRADES=[
   {id:'rapid',name:'连发机芯',sprite:'side',max:6,detail:'主炮间隔 −12%',group:'主炮'},

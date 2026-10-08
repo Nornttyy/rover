@@ -4,6 +4,8 @@ import {RoverGame} from '../src/rover/game.js';
 import {SAVE_KEY,newProfile,DRIVE,WORLD,MODULE_BY_ID} from '../src/rover/data.js';
 import {IMAGES} from '../src/rover/assets.js';
 import {grantXP} from '../src/rover/rogue.js';
+import {Expedition} from '../src/rover/core.js';
+import {RoverRenderer} from '../src/rover/render.js';
 const copy=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
 function harness(initial={},fail=null){
   const data=new Map(Object.entries(initial)),writes=[],paths=[];
@@ -11,7 +13,8 @@ function harness(initial={},fail=null){
   const canvas={getContext:()=>ctx,width:390,height:844};
   const storage={get:k=>copy(data.get(k)),set:(k,v)=>{writes.push(k);data.set(k,copy(v));return true;}};
   const createImage=()=>({width:1254,height:1254,set src(url){paths.push(url);queueMicrotask(()=>url===fail?this.onerror():this.onload());}});
-  const game=new RoverGame({canvas,createImage,createSurface:()=>({width:1254,height:1254,getContext:()=>ctx}),storage});game.resize({width:390,height:844,dpr:2});return{game,data,writes,paths};
+  // Archived driving mode regression. New survival mode is tested separately with default dependencies.
+  const game=new RoverGame({canvas,createImage,createSurface:()=>({width:1254,height:1254,getContext:()=>ctx}),storage,runType:Expedition,rendererType:RoverRenderer});game.resize({width:390,height:844,dpr:2});return{game,data,writes,paths};
 }
 async function loaded(initial={},fail=null){const h=harness(initial,fail);await h.game.load();return h;}
 function frames(g,seconds,start=0){g.frame(start);for(let i=1;i<=Math.ceil(seconds*60);i++)g.frame(start+i*1000/60);}
@@ -49,4 +52,12 @@ test('nearby cache collects automatically without a parking task or duplicate re
 test('route chart pauses combat and roof taps mark the nearest safe road, not an unreachable building',async()=>{
   const {game:g}=await loaded();g.start();g.action('map');const time=g.run.time;frames(g,20);assert.equal(g.run.time,time);assert.ok(g.renderer.buttons.every(b=>['close-map','chart','return-guide'].includes(b.id)));
   const r=g.renderer.chartRect,p={x:r.x+670/WORLD.w*r.w,y:r.y+1700/WORLD.h*r.h};g.pointerDown(p.x,p.y,1);g.pointerUp(p.x,p.y,1);assert.equal(g.screen,'play');assert.ok(g.waypoint);assert.equal(g.run.blocked(g.waypoint.x,g.waypoint.y,29),false);assert.deepEqual(g.input,{x:0,y:0});assert.equal(g.lastTime,null);
+});
+test('compact driving HUD keeps touch targets clear on both short and tall phones',async()=>{
+  const {game:g}=await loaded();g.start();
+  for(const size of [{width:320,height:480},{width:430,height:932}]){
+    g.resize(size);g.draw();const buttons=g.renderer.buttons.filter(b=>['pause','map','action','boost'].includes(b.id));assert.equal(buttons.length,4);
+    for(const b of buttons){assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=390&&b.y+b.h<=g.renderer.layout.h);assert.ok(Math.min(b.w,b.h)*g.renderer.layout.scale>=44);}
+    for(let i=0;i<buttons.length;i++)for(let j=i+1;j<buttons.length;j++){const a=buttons[i],b=buttons[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'non-overlapping '+a.id+' / '+b.id);}
+  }
 });

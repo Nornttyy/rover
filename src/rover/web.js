@@ -1,5 +1,5 @@
-import {RoverGame} from './game.js?v=9';
-import {createRoverAudio} from './audio.js?v=9';
+import {RoverGame} from './game.js?v=12';
+import {createRoverAudio} from './audio.js?v=12';
 const canvas=document.getElementById('rover');
 const storage={get(key){try{return JSON.parse(localStorage.getItem(key));}catch{return null;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}}};
 const createSurface=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
@@ -12,11 +12,11 @@ canvas.addEventListener('pointermove',e=>{const p=point(e);game.pointerMove(p.x,
 canvas.addEventListener('pointerup',e=>{const p=point(e);game.pointerUp(p.x,p.y,e.pointerId);if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);});
 canvas.addEventListener('pointercancel',e=>game.pointerCancel(e.pointerId));
 canvas.addEventListener('lostpointercapture',e=>game.pointerCancel(e.pointerId));
-const controlKey=e=>({KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyM:'m'}[e.code]||e.key.toLowerCase());
-const controlKeys=new Set(['w','a','s','d','q','m','1','2','3','arrowup','arrowdown','arrowleft','arrowright',' ','enter','escape','shift']);
+const controlKey=e=>({KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyE:'e',KeyR:'r',KeyQ:'q',KeyM:'m'}[e.code]||e.key.toLowerCase());
+const controlKeys=new Set(['w','a','s','d','e','r','q','m','1','2','3','arrowup','arrowdown','arrowleft','arrowright',' ','enter','escape','shift']);
 canvas.addEventListener('keydown',e=>{const key=controlKey(e);if(controlKeys.has(key)){e.preventDefault();game.keyboard(key,true);}});
 window.addEventListener('keyup',e=>{const key=controlKey(e);if(controlKeys.has(key)&&game.keys.has(key)){if(document.activeElement===canvas)e.preventDefault();game.keyboard(key,false);}});
 canvas.addEventListener('blur',()=>{if(game.screen==='play')game.action('pause');else game.clearInput();});
 window.addEventListener('blur',()=>game.setVisible(false));window.addEventListener('focus',()=>game.setVisible(!document.hidden));document.addEventListener('visibilitychange',()=>game.setVisible(!document.hidden));window.addEventListener('pagehide',()=>game.save());window.addEventListener('resize',resize);new ResizeObserver(resize).observe(canvas);
-let status='';function frame(time){game.frame(time);const key=game.screen+'|'+game.loaded;if(key!==status){status=key;canvas.dataset.ready=String(game.loaded);canvas.dataset.screen=game.screen;document.getElementById('game-status').textContent=game.screen==='garage'?'移动基地大厅，点击工坊改装或出发。':game.screen==='workshop'?'改装工坊，基础与进阶装备分为两页。':game.screen==='module'?'装备详情，可以购买、装配或返回工坊。':game.screen==='play'?'拖动驾驶，击败敌人收集经验，升级选择装备，车库可撤离。':game.screen==='upgrade'?'战斗已暂停，选择一张升级卡。':game.screen==='result'?game.run.result.reason:'移动基地';}requestAnimationFrame(frame);}
+let status='';function frame(time){game.frame(time);const key=game.screen+'|'+game.loaded+'|'+game.run?.mode+'|'+game.run?.zone+'|'+game.run?.floor;if(key!==status){status=key;canvas.dataset.ready=String(game.loaded);canvas.dataset.screen=game.screen;canvas.dataset.mode=game.run?.mode||'';canvas.dataset.zone=game.run?.zone||'';canvas.dataset.floor=String(game.run?.floor||1);document.getElementById('game-status').textContent=game.screen==='garage'?'移动基地大厅，点击工坊改装或出发。':game.screen==='workshop'?'局外改装工坊，装备永久保留。':game.screen==='module'?'装备详情，可以购买、装配或返回工坊。':game.screen==='play'?game.run.zone!=='street'?'室内探索，靠近物资搜刮。楼梯在北侧，1层下方出口返回街区。':game.run.mode==='foot'?'步行探索，靠近房屋入口进屋，靠近车辆上车。':'驾驶探索。E 下车，R 现场改装，空格交互，M 地图。':game.screen==='field-workshop'?'现场改装，消耗本局物资，不是抽卡。':game.screen==='result'?game.run.result.reason:'移动基地';}requestAnimationFrame(frame);}
 document.getElementById('retry').onclick=()=>location.reload();resize();requestAnimationFrame(frame);game.load().then(()=>{canvas.dataset.ready='true';}).catch(error=>{console.error(error);document.getElementById('load-error').hidden=false;});

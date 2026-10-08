@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {inflateSync} from 'node:zlib';
 import {IMAGES,EQUIPMENT_SPRITES,equipmentRegion} from '../src/rover/assets.js';
+import {ACTOR_BOXES} from '../src/rover/survival-render.js';
 function decode(path){
   const png=readFileSync(new URL('../'+path,import.meta.url)),width=png.readUInt32BE(16),height=png.readUInt32BE(20),chunks=[];
   assert.equal(png[24],8);assert.equal(png[25],6);assert.equal(png[28],0);
@@ -14,7 +15,7 @@ function decode(path){
 }
 test('active map, equipment and recovery bay use delivered production PNGs, not missing placeholders',()=>{
   for(const path of Object.values(IMAGES)){const png=readFileSync(new URL('../'+path,import.meta.url));assert.equal(png.subarray(1,4).toString(),'PNG');assert.ok(png.length>50000);}
-  assert.match(IMAGES.map,/district-v9/);for(const id of ['buildings','compoundsA','compoundsB','scenery','extraction'])assert.equal(id in IMAGES,false,'no static scenery atlas '+id);
+  assert.match(IMAGES.map,/district-q-a-v12/);for(const id of ['buildings','compoundsA','compoundsB','scenery','extraction'])assert.equal(id in IMAGES,false,'no static scenery atlas '+id);
   assert.match(IMAGES.base,/base-v8/);
   assert.doesNotMatch(readFileSync(new URL('../src/rover/render.js',import.meta.url),'utf8'),/convoy:depot|accept-contract|beginDelivery/);
 });
@@ -29,4 +30,16 @@ test('all 12 equipment sprites have measured, non-overlapping crops with real tr
 test('whole map is the delivered opaque illustration, with its actual resolution recorded rather than faked upscaling',()=>{
   const png=readFileSync(new URL('../'+IMAGES.map,import.meta.url));assert.equal(png.readUInt32BE(16),1254);assert.equal(png.readUInt32BE(20),1254);
   if(png[25]===6){const image=decode(IMAGES.map);for(let y=0;y<image.height;y+=31)for(let x=0;x<image.width;x+=31)assert.equal(image.alpha(x,y),255);}
+});
+test('Q-character crops have clear padding rather than neighboring sprite fragments',()=>{
+  const art=decode(IMAGES.characters);assert.equal(art.width,1774);assert.equal(art.height,887);
+  for(const [id,[x,y,w,h]] of Object.entries(ACTOR_BOXES)){
+    assert.ok(x>=0&&y>=0&&x+w<=art.width&&y+h<=art.height,id);
+    for(let i=0;i<w;i++)assert.ok(art.alpha(x+i,y)<=32&&art.alpha(x+i,y+h-1)<=32,id+' top/bottom crop');
+    for(let i=0;i<h;i++)assert.ok(art.alpha(x,y+i)<=32&&art.alpha(x+w-1,y+i)<=32,id+' side crop');
+  }
+});
+test('each house type consumes delivered whole-floor artwork with no separately assembled furniture',()=>{
+  const paths=['interior','interiorLarge','interiorVilla','interiorVillaUpper','interiorTower'].map(k=>IMAGES[k]);assert.equal(new Set(paths).size,5);
+  for(const path of paths){const bytes=readFileSync(new URL('../'+path,import.meta.url));assert.equal(bytes.readUInt32BE(16),1254);assert.equal(bytes.readUInt32BE(20),1254);assert.ok(bytes.length>1e6);}
 });

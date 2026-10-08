@@ -1,4 +1,4 @@
-export const IMAGES={atlas:'assets/rover/atlas-v1.png',garage:'assets/rover/garage-v1.png',base:'assets/rover/base-v8.png',effects:'assets/rover/effects-v2.png',convoy:'assets/rover/convoy-v3.png',equipment:'assets/rover/equipment-v5.png',map:'assets/rover/district-v9.png'};
+export const IMAGES={atlas:'assets/rover/atlas-v1.png',garage:'assets/rover/garage-v1.png',base:'assets/rover/base-v8.png',effects:'assets/rover/effects-v2.png',convoy:'assets/rover/convoy-v3.png',equipment:'assets/rover/equipment-v5.png',map:'assets/rover/district-q-a-v12.png',mapAlt:'assets/rover/district-q-b-v12.png',characters:'assets/rover/characters-q-v12.png',interior:'assets/rover/interior-small-q-v12.png',interiorLarge:'assets/rover/interior-large-q-v12.png',interiorVilla:'assets/rover/interior-villa-q-v12.png',interiorVillaUpper:'assets/rover/interior-villa-upper-q-v12.png',interiorTower:'assets/rover/interior-tower-q-v12.png'};
 // Alpha bounds measured from the delivered atlas, with a transparent guard around every sprite.
 const boxes={
   truck:[38,32,255,274],gun:[383,46,199,246],drill:[652,36,275,266],side:[1006,47,199,254],

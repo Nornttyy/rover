@@ -87,6 +87,15 @@ test('default game uses zombie exploration; keyboard and touch expose boarding a
 test('touch HUD and field workshop fit short/tall phones with distinct usable hit targets',async()=>{
   const {g}=await loaded();for(const size of [{width:320,height:480},{width:430,height:932}]){g.resize(size);g.screen='play';g.draw();const buttons=g.renderer.buttons;for(const b of buttons){assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=390&&b.y+b.h<=g.renderer.layout.h,b.id);assert.ok(Math.min(b.w,b.h)*g.renderer.layout.scale>=44,b.id);}for(let i=0;i<buttons.length;i++)for(let j=i+1;j<buttons.length;j++){const a=buttons[i],b=buttons[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'overlap '+a.id+'/'+b.id);}g.action('field-workshop');assert.equal(g.screen,'field-workshop');for(const b of g.renderer.buttons)assert.ok(b.y>=0&&b.y+b.h<=g.renderer.layout.h,b.id);g.action('close-field');}
 });
+test('device workshop pages fit phones, unlock only real schematic purchases, and no map extraction button remains',async()=>{
+  const {g}=await loaded();g.run.player.cargo=1000;g.run.supplies.wire=50;g.run.blueprints=['blade','arc','mine','frost','drone','laser'];
+  for(const size of [{width:320,height:480},{width:430,height:932}]){
+    g.resize(size);g.screen='play';g.action('field-workshop');g.action('field-tab:rig');
+    for(let page=0;page<2;page++){g.rigPage=page;g.draw();const buttons=g.renderer.buttons;assert.equal(buttons.filter(b=>b.id.startsWith('field-buy:')).length,3);for(const b of buttons){assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=390&&b.y+b.h<=g.renderer.layout.h,b.id);assert.ok(Math.min(b.w,b.h)*g.renderer.layout.scale>=44,b.id);}for(let i=0;i<buttons.length;i++)for(let j=i+1;j<buttons.length;j++){const a=buttons[i],b=buttons[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'overlap '+a.id+'/'+b.id);}}
+    g.action('close-field');g.action('map');assert.equal(g.renderer.buttons.some(b=>b.id==='return-guide'),false);g.action('close-map');
+  }
+  g.action('field-workshop');g.action('field-buy:blade');assert.equal(g.run.rogue.levels.blade,1);g.action('close-field');g.action('vehicle');g.action('map');assert.ok(g.renderer.buttons.some(b=>b.id==='car-guide'));g.action('car-guide');assert.deepEqual(g.waypoint,{x:g.run.player.x,y:g.run.player.y});
+});
 test('floor transition releases controls, saves the floor and resets the follow camera',async()=>{
   const {g,data}=await loaded(),s=indoors('villa');g.run=s;Object.assign(s.hero,{x:s.bounds.up.x,y:s.bounds.up.y});g.input={x:1,y:1};g.action('action');assert.equal(s.floor,2);assert.deepEqual(g.input,{x:0,y:0});assert.equal(g.transition,.28);assert.equal(data.get(SAVE_KEY).run.floor,2);assert.ok(SurvivalRun.restore(data.get(SAVE_KEY).run));g.draw();assert.equal(g.renderer.zone,s.zone+'@2');
 });
@@ -94,5 +103,5 @@ test('portrait height never enlarges indoor art or changes the size of the pedes
   const {g}=await loaded();for(const type of Object.keys(ROOM_SIZES)){g.run=quiet(indoors(type));for(const size of [{width:320,height:480},{width:430,height:932},{width:390,height:1100}]){g.resize(size);g.screen='play';g.justStarted=true;g.draw();assert.equal(g.projection.z,.92);assert.ok(g.projection.ox<=0);if(g.run.bounds.h*.92<g.projection.height)assert.equal(g.projection.oy,(g.projection.height-g.run.bounds.h*.92)/2);}}
 });
 test('background pause and result settlement retain survival saves and credit only once',async()=>{
-  const {g,data}=await loaded({[SAVE_KEY]:{...newProfile(),bank:100}});g.run.player.cargo=55;g.frame(0);g.frame(500);g.setVisible(false);const time=g.run.time;g.frame(1e9);assert.equal(g.run.time,time);const restored=await loaded(Object.fromEntries(data));assert.equal(restored.g.run.player.cargo,55);restored.g.run.finish(true);restored.g.frame(0);restored.g.frame(20);assert.equal(restored.g.profile.bank,155);restored.g.frame(40);assert.equal(restored.g.profile.bank,155);
+  const {g,data}=await loaded({[SAVE_KEY]:{...newProfile(),bank:100}});g.run.player.cargo=55;g.run.secured=16;g.frame(0);g.frame(500);g.setVisible(false);const time=g.run.time;g.frame(1e9);assert.equal(g.run.time,time);const restored=await loaded(Object.fromEntries(data));assert.equal(restored.g.run.player.cargo,55);restored.g.run.finish(false);restored.g.frame(0);restored.g.frame(20);assert.equal(restored.g.profile.bank,135);restored.g.frame(40);assert.equal(restored.g.profile.bank,135);
 });

@@ -34,6 +34,8 @@ export function createRoverAudio(createContext){
         else if(name==='boost'){noise(.45,1600,.28);tone(95,time,.17,.14,230);}
         else if(name==='flame'){noise(.2,1200,.62);tone(70,time,.13,.14,42);}
         else if(['tap','attach','detach'].includes(name)){noise(.045,1100,.2);tone(360,time,.05,.08,240);}
+        else if(name==='horde-warning'||name==='horde-start'){for(let i=0;i<3;i++)tone(name==='horde-start'?105:155,time+i*.22,.19,.22,name==='horde-start'?60:115);noise(.18,420,.15);}
+        else if(name==='horde-clear'||name==='blueprint'){[440,554.37,659.25].forEach((n,i)=>tone(n,time+i*.08,.22,.14));}
         else{
           const notes=['win'].includes(name)?[523.25,659.25,783.99]:['lose','trailer-lost'].includes(name)?[180,120]:name==='loot'?[880,1174.66]:['upgrade','level-up'].includes(name)?[440,659.25,880]:name==='boss-start'?[75,75,105]:[];
           notes.forEach((n,i)=>{tone(n,time+i*.075,name==='boss-start'?.21:.24,name==='boss-start'?.35:.16);if(name==='boss-start')noise(.12,450,.2);});

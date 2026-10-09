@@ -1,4 +1,4 @@
-import {DRIVE,statsFor,dist,angleTo,clamp} from './data.js?v=13';
+import {DRIVE,statsFor,dist,angleTo,clamp} from './data.js?v=14';
 
 export const UPGRADES=[
   {id:'rapid',name:'连发机芯',sprite:'side',max:6,detail:'主炮间隔 −12%',group:'主炮'},
@@ -44,18 +44,19 @@ export function choose(s,id){const r=s.rogue,u=UPGRADE_BY_ID[id];if(!r.offer.inc
 export function reroll(s){if(!s.rogue.offer.length||s.rogue.rerolls<=0)return false;const previous=[...s.rogue.offer];s.rogue.rerolls--;roll(s);if(s.rogue.offer.every(id=>previous.includes(id))){const alternative=UPGRADES.find(u=>u.id!=='supply'&&!previous.includes(u.id)&&rank(s,u.id)<u.max);if(alternative)s.rogue.offer[0]=alternative.id;}return true;}
 export function rogueWeapons(s,dt){
   const p=s.player,scale=damageScale(s),r=s.rogue;
+  const visible=(from,e)=>!s.sight||s.sight(from,e);
   if(rank(s,'repair'))p.hp=Math.min(p.maxHp,p.hp+dt*rank(s,'repair')*.35);
   if(rank(s,'shield')&&s.time-p.lastHit>4)r.shield=Math.min(rank(s,'shield')*25,r.shield+dt*6);
   for(const name of ['blade','arc','mine','rocket','laser','frost','oil','drone','mortar'])if(!Number.isFinite(s.cooldowns[name]))s.cooldowns[name]=0;
-  if(skill(s,'blade')&&s.cooldowns.blade<=0){s.cooldowns.blade=.32;for(let i=0;i<skill(s,'blade');i++){const a=s.time*2.7+i*Math.PI*2/skill(s,'blade'),blade={x:p.x+Math.cos(a)*90,y:p.y+Math.sin(a)*90};for(const e of s.enemies)if(e.born<=0&&dist(e,blade)<e.r+23)s.hurtEnemy(e,22*scale);}}
-  if(skill(s,'arc')&&s.cooldowns.arc<=0){let from=p;const hit=[],points=[{x:p.x,y:p.y}];for(let i=0;i<2+skill(s,'arc');i++){const e=s.enemies.filter(e=>e.hp>0&&e.born<=0&&!hit.includes(e)&&dist(e,from)<(i?155:250)).sort((a,b)=>dist(a,from)-dist(b,from))[0];if(!e)break;hit.push(e);points.push({x:e.x,y:e.y});s.hurtEnemy(e,(20+skill(s,'arc')*6)*scale);from=e;}if(hit.length){s.cooldowns.arc=1.8;s.effect('arc',p.x,p.y,.23,{points});s.emit('cannon');}}
+  if(skill(s,'blade')&&s.cooldowns.blade<=0){s.cooldowns.blade=.32;for(let i=0;i<skill(s,'blade');i++){const a=s.time*2.7+i*Math.PI*2/skill(s,'blade'),blade={x:p.x+Math.cos(a)*90,y:p.y+Math.sin(a)*90};for(const e of s.enemies)if(e.born<=0&&dist(e,blade)<e.r+23&&visible(p,e))s.hurtEnemy(e,22*scale);}}
+  if(skill(s,'arc')&&s.cooldowns.arc<=0){let from=p;const hit=[],points=[{x:p.x,y:p.y}];for(let i=0;i<2+skill(s,'arc');i++){const e=s.enemies.filter(e=>e.hp>0&&e.born<=0&&!hit.includes(e)&&dist(e,from)<(i?155:250)&&visible(from,e)).sort((a,b)=>dist(a,from)-dist(b,from))[0];if(!e)break;hit.push(e);points.push({x:e.x,y:e.y});s.hurtEnemy(e,(20+skill(s,'arc')*6)*scale);from=e;}if(hit.length){s.cooldowns.arc=1.8;s.effect('arc',p.x,p.y,.23,{points});s.emit('cannon');}}
   if(skill(s,'mine')&&Math.hypot(p.vx,p.vy)>60&&s.cooldowns.mine<=0){s.cooldowns.mine=Math.max(.8,2.6-skill(s,'mine')*.3);const x=p.x-Math.sin(p.a)*48,y=p.y+Math.cos(p.a)*48;if(!s.blocked(x,y,12))s.mines.push({x,y,life:18,arm:.45});}
   for(const m of s.mines){m.life-=dt;m.arm-=dt;if(m.arm<=0&&s.enemies.some(e=>e.born<=0&&e.hp>0&&dist(e,m)<e.r+42)){for(const e of s.enemies)if(dist(e,m)<110+e.r)s.hurtEnemy(e,(48+skill(s,'mine')*12)*scale);m.life=0;s.effect('blast',m.x,m.y,.4);s.emit('kill',m.x,m.y);}}
   s.mines=s.mines.filter(m=>m.life>0).slice(-24);
   const target=s.nearest(350+rank(s,'longshot')*45);
   if(target&&skill(s,'rocket')&&s.cooldowns.rocket<=0){s.cooldowns.rocket=2.8;for(let i=0;i<skill(s,'rocket');i++){s.shoot(p,angleTo(p,target)+(i-(skill(s,'rocket')-1)/2)*.18,65*scale,270,'rocket');s.bullets.at(-1).life=2.8;}s.emit('cannon');}
   if(target&&skill(s,'laser')&&s.cooldowns.laser<=0){s.cooldowns.laser=1.2;const a=angleTo(p,target),dx=Math.sin(a),dy=-Math.cos(a);let reach=360+rank(s,'longshot')*45;for(let t=20;t<reach;t+=20)if(s.blocked(p.x+dx*t,p.y+dy*t,2)){reach=t;break;}for(const e of s.enemies){const x=e.x-p.x,y=e.y-p.y,along=x*dx+y*dy,across=Math.abs(x*dy-y*dx);if(e.born<=0&&along>0&&along<reach&&across<e.r+6)s.hurtEnemy(e,(28+skill(s,'laser')*9)*scale);}s.effect('laser',p.x,p.y,.15,{points:[{x:p.x,y:p.y},{x:p.x+dx*reach,y:p.y+dy*reach}]});s.emit('laser');}
-  if(skill(s,'frost')&&s.cooldowns.frost<=0&&s.enemies.some(e=>dist(e,p)<170&&e.born<=0)){s.cooldowns.frost=2;for(const e of s.enemies)if(dist(e,p)<170+e.r){e.slow=2.4;s.hurtEnemy(e,8*skill(s,'frost')*scale);}s.effect('frost',p.x,p.y,.5);}
+  if(skill(s,'frost')&&s.cooldowns.frost<=0&&s.enemies.some(e=>dist(e,p)<170&&e.born<=0&&visible(p,e))){s.cooldowns.frost=2;for(const e of s.enemies)if(e.born<=0&&dist(e,p)<170+e.r&&visible(p,e)){e.slow=2.4;s.hurtEnemy(e,8*skill(s,'frost')*scale);}s.effect('frost',p.x,p.y,.5);}
   if(rank(s,'oil')&&Math.hypot(p.vx,p.vy)>60&&s.cooldowns.oil<=0){s.cooldowns.oil=.6;s.oil.push({x:p.x,y:p.y,life:9});}for(const o of s.oil){o.life-=dt;for(const e of s.enemies)if(dist(e,o)<70+e.r)e.oiled=.3;}s.oil=s.oil.filter(o=>o.life>0).slice(-22);
   if(rank(s,'drone')&&s.cooldowns.drone<=0){s.cooldowns.drone=.7;for(let i=0;i<rank(s,'drone');i++){const a=s.time*.9+i*Math.PI*2/rank(s,'drone'),drone={x:p.x+Math.cos(a)*120,y:p.y+Math.sin(a)*120,a:0},e=s.enemies.filter(e=>e.hp>0&&e.born<=0&&dist(drone,e)<270).sort((a,b)=>dist(a,drone)-dist(b,drone))[0];if(e){drone.a=angleTo(drone,e);s.shoot(drone,drone.a,10*scale,430,'drone');}}}
   if(target&&rank(s,'mortar')&&s.cooldowns.mortar<=0){s.cooldowns.mortar=3;const a=angleTo(p,target);s.shoot(p,a,(65+rank(s,'mortar')*15)*scale,dist(p,target)/.75,'mortar');s.bullets.at(-1).life=.75;s.emit('cannon');}

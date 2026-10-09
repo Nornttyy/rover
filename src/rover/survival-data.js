@@ -1,4 +1,4 @@
-import {MODULE_BY_ID,powerOf,clamp,dist} from './data.js?v=13';
+import {MODULE_BY_ID,powerOf,clamp,dist} from './data.js?v=14';
 
 export const TOWN={w:1536,h:1536,home:{x:768,y:768,r:85},endless:true};
 export const INTERIOR_REVISION=2;
@@ -30,6 +30,18 @@ export const ZOMBIES={
   brute:{hp:360,speed:34,r:29,damage:18,sprite:'brute',loot:12}
 };
 export const SUPPLIES={parts:{name:'零件',sprite:'parts'},wire:{name:'电子元件',sprite:'parts'},food:{name:'罐头',sprite:'bag'},meds:{name:'药品',sprite:'meds'},ammo:{name:'弹药',sprite:'bag'}};
+// Salvaged schematics unlock paid, physical devices, never upgrade cards.
+export const RIG_MODS=[
+  {id:'blade',name:'环绕锯刃',sprite:'equip:saw',group:'rig',max:3,parts:26,wire:1,detail:'绕车切割 · 每级增加一把'},
+  {id:'arc',name:'电弧线圈',sprite:'equip:tesla',group:'rig',max:3,parts:34,wire:2,detail:'连锁电击 · 适合密集尸群'},
+  {id:'mine',name:'车尾布雷器',sprite:'equip:mine',group:'rig',max:3,parts:24,wire:1,detail:'行驶布雷 · 留给后方追兵'},
+  {id:'frost',name:'低温喷雾',sprite:'equip:cryo',group:'rig',max:3,parts:28,wire:2,detail:'近身减速 · 腾出转向空间'},
+  {id:'drone',name:'伴飞无人机',sprite:'equip:drone',group:'rig',max:3,parts:36,wire:2,detail:'独立射击 · 每级增加一架'},
+  {id:'laser',name:'贯穿激光',sprite:'equip:laser',group:'rig',max:3,parts:38,wire:2,detail:'贯穿直线上的尸群'}
+];
+export const RIG_BY_ID=Object.fromEntries(RIG_MODS.map(m=>[m.id,m]));
+export const HORDE={first:90,warning:8,rest:65};
+export const newHorde=(clock=0)=>({clock,index:0,cleared:0,phase:'calm',nextAt:clock+HORDE.first,remaining:0,total:0,spawnIn:0});
 export const FIELD_MODS=[
   {id:'rapid',name:'改良机芯',sprite:'side',group:'fire',max:3,parts:18,wire:1,detail:'主炮射速 +12%'},
   {id:'twin',name:'加装炮管',sprite:'gun',group:'fire',max:2,parts:32,wire:2,detail:'多一发子弹 · 单发 80%伤害'},
@@ -39,7 +51,8 @@ export const FIELD_MODS=[
   {id:'magnet',name:'回收磁铁',sprite:'equip:magnet',group:'body',max:3,parts:16,wire:1,detail:'车辆拾取范围 +45'},
   {id:'patch',name:'修车',sprite:'repair',group:'supply',max:999,parts:12,wire:0,detail:'恢复 45 点车辆耐久'},
   {id:'heal',name:'包扎',sprite:'survival:meds',group:'supply',max:999,parts:0,wire:0,meds:1,detail:'恢复 45 点人物生命'},
-  {id:'ammo',name:'补充弹药',sprite:'cargo',group:'supply',max:999,parts:0,wire:0,food:1,detail:'补充 45 发手枪弹药'}
+  {id:'ammo',name:'补充弹药',sprite:'cargo',group:'supply',max:999,parts:0,wire:0,food:1,detail:'补充 45 发手枪弹药'},
+  ...RIG_MODS
 ];
 export const FIELD_BY_ID=Object.fromEntries(FIELD_MODS.map(m=>[m.id,m]));
 export function fieldPrice(run,id){const m=FIELD_BY_ID[id];if(!m)return null;const n=run.rogue.levels[id]||0;return{parts:m.parts*(m.max<999?n+1:1),wire:m.wire*(m.max<999?n+1:1),meds:m.meds||0,food:m.food||0};}

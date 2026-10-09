@@ -1,9 +1,9 @@
-import {WORLD,DRIVE,TRAILER_NAMES,MODULES,MODULE_BY_ID,powerOf,statsFor,clamp,dist} from './data.js?v=13';
-import {region,fxRegion,convoyRegion,equipmentRegion} from './assets.js?v=13';
-import {UPGRADE_BY_ID,rank,skill,gunInterval,boostCooldown} from './rogue.js?v=13';
-import {RoverTerrain} from './terrain.js?v=13';
-import {STICK} from './feel.js?v=13';
-import {frameWorld,minimapView,impactFan} from './presentation.js?v=13';
+import {WORLD,DRIVE,TRAILER_NAMES,MODULES,MODULE_BY_ID,powerOf,statsFor,clamp,dist} from './data.js?v=14';
+import {region,fxRegion,convoyRegion,equipmentRegion} from './assets.js?v=14';
+import {UPGRADE_BY_ID,rank,skill,gunInterval,boostCooldown} from './rogue.js?v=14';
+import {RoverTerrain} from './terrain.js?v=14';
+import {STICK} from './feel.js?v=14';
+import {frameWorld,minimapView,impactFan} from './presentation.js?v=14';
 const C={ink:'#142d41',white:'#f2fcff',teal:'#57e4c5',orange:'#ff914e',muted:'#9bb8c8',red:'#ff687a'};
 const FONT='"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
 const ENEMY_SIZE={drone:[45,43],spitter:[49,46],ram:[43,53],boss:[144,125],raider:[45,53]};

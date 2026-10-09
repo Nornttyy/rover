@@ -1,4 +1,4 @@
-import {TOWN,district,rotateLocal} from './survival-data.js?v=13';
+import {TOWN,district,rotateLocal} from './survival-data.js?v=14';
 export class EndlessTerrain{
   constructor(images){this.images=images;}
   draw(c,bounds){

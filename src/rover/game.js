@@ -1,29 +1,29 @@
-import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=13';
-import {Expedition,STEP} from './core.js?v=13';
-import {IMAGES} from './assets.js?v=13';
-import {RoverRenderer} from './render.js?v=13';
-import {RoverFeel,steerStick} from './feel.js?v=13';
-import {roadPoint} from './navigation.js?v=13';
-import {SurvivalRun} from './survival.js?v=13';
-import {SurvivalRenderer} from './survival-render.js?v=13';
-import {TOWN,safeStreet} from './survival-data.js?v=13';
+import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=14';
+import {Expedition,STEP} from './core.js?v=14';
+import {IMAGES} from './assets.js?v=14';
+import {RoverRenderer} from './render.js?v=14';
+import {RoverFeel,steerStick} from './feel.js?v=14';
+import {roadPoint} from './navigation.js?v=14';
+import {SurvivalRun} from './survival.js?v=14';
+import {SurvivalRenderer} from './survival-render.js?v=14';
+import {TOWN,safeStreet} from './survival-data.js?v=14';
 export class RoverGame{
   constructor({canvas,createImage,createSurface,storage,audio,reducedMotion=false,runType=SurvivalRun,rendererType=SurvivalRenderer}){
     this.canvas=canvas;this.createImage=createImage;this.images={};this.storage=storage;this.audio=audio;this.reducedMotion=reducedMotion;
     this.runType=runType;const raw=storage.get(SAVE_KEY);this.profile=cleanProfile(raw);this.run=runType.restore(raw?.run);this.profile.run=this.run?.snapshot()||null;
     this.screen='garage';this.selected=null;this.progress=0;this.loaded=false;this.visible=true;this.input={x:0,y:0};this.keys=new Set();this.joy=null;this.pressed=null;this.toast=null;this.flash=0;this.returnGuide=false;this.lastTime=null;this.accumulator=0;this.lastSave=0;this.settled=false;this.justStarted=true;
-    this.bounce=0;this.lootPulse=0;this.resultAge=0;this.uiTime=0;this.gearPage=0;this.fieldTab='fire';this.transition=0;this.lastImpact=-1;this.feel=new RoverFeel();this.renderer=new rendererType(canvas,this.images,createSurface);this.audio?.setEnabled(this.profile.sound);
+    this.bounce=0;this.lootPulse=0;this.resultAge=0;this.uiTime=0;this.gearPage=0;this.fieldTab='fire';this.rigPage=0;this.hordeNotice=0;this.transition=0;this.lastImpact=-1;this.feel=new RoverFeel();this.renderer=new rendererType(canvas,this.images,createSurface);this.audio?.setEnabled(this.profile.sound);
   }
   resize({width,height,dpr=1}){const old=this.renderer.layout;if(Math.abs(old.width-width)>1||Math.abs(old.height-height)>100)this.clearInput();this.renderer.resize(width,height,dpr);this.draw();}
   async load(){let count=0;const assets=Object.entries(IMAGES);await Promise.all(assets.map(([key,url])=>new Promise((resolve,reject)=>{const img=this.createImage(),timeout=setTimeout(()=>reject(new Error('素材加载超时: '+url)),15000);img.onload=()=>{clearTimeout(timeout);this.images[key]=img;this.progress=++count/assets.length;resolve();};img.onerror=()=>{clearTimeout(timeout);reject(new Error('素材加载失败: '+url));};img.src=url;})));this.loaded=true;this.draw();}
   notify(text){this.toast={text,time:1.8};}
   draw(dt=0){this.renderer.draw(this,dt);}
   frame(now){const dt=this.lastTime===null?0:clamp((now-this.lastTime)/1000,0,.08);this.lastTime=now;if(!this.visible)return;
-    this.uiTime+=dt;this.transition=Math.max(0,this.transition-dt);if(this.toast)this.toast.time-=dt;this.flash=Math.max(0,this.flash-dt*2.5);this.bounce=Math.max(0,this.bounce-dt*2.6);this.lootPulse=Math.max(0,this.lootPulse-dt*2.5);if(this.screen==='result')this.resultAge+=dt;
+    this.uiTime+=dt;this.transition=Math.max(0,this.transition-dt);this.hordeNotice=Math.max(0,this.hordeNotice-dt);if(this.toast)this.toast.time-=dt;this.flash=Math.max(0,this.flash-dt*2.5);this.bounce=Math.max(0,this.bounce-dt*2.6);this.lootPulse=Math.max(0,this.lootPulse-dt*2.5);if(this.screen==='result')this.resultAge+=dt;
     if(this.loaded&&this.screen==='play'){
       this.accumulator+=dt;for(let n=0;this.accumulator+1e-10>=STEP&&n<5;n++){this.run.step(STEP,this.input);this.accumulator=Math.max(0,this.accumulator-STEP);if(this.run.phase!=='play'){this.settle();break;}if(this.run.rogue.offer.length){this.screen='upgrade';this.clearInput();this.save();break;}}
       this.feel.tick(this.run.actor?{player:this.run.actor,effects:this.run.effects}:this.run,dt,this.reducedMotion||this.run.mode==='foot');
-      for(const event of this.run.events){this.audio?.play(event.type);if(event.type==='hurt'){this.flash=1;this.feel.kick=this.reducedMotion?0:2;}if(event.type==='loot'){this.lootPulse=1;this.feel.loot(event);}if(['ram','kill'].includes(event.type)&&this.uiTime-this.lastImpact>.18){this.lastImpact=this.uiTime;this.feel.kick=this.reducedMotion?0:event.type==='ram'?2.8:Math.max(this.feel.kick,.6);}if(event.type==='trailer-lost')this.notify('拖挂脱落');}this.run.events=[];
+      for(const event of this.run.events){this.audio?.play(event.type);if(event.type==='hurt'){this.flash=1;this.feel.kick=this.reducedMotion?0:2;}if(event.type==='loot'){this.lootPulse=1;this.feel.loot(event);}if(event.type==='blueprint')this.notify('找到装置图纸');if(event.type==='horde-clear')this.hordeNotice=4;if(['ram','kill'].includes(event.type)&&this.uiTime-this.lastImpact>.18){this.lastImpact=this.uiTime;this.feel.kick=this.reducedMotion?0:event.type==='ram'?2.8:Math.max(this.feel.kick,.6);}if(event.type==='trailer-lost')this.notify('拖挂脱落');}this.run.events=[];
       this.audio?.motor(this.run.mode==='foot'?0:Math.min(1,Math.hypot(this.run.player.vx,this.run.player.vy)/DRIVE.speed));
       const actor=this.run.actor||this.run.player;if(this.waypoint&&Math.hypot(actor.x-this.waypoint.x,actor.y-this.waypoint.y)<75)this.waypoint=null;
       if(this.run.time-this.lastSave>5){this.save();this.lastSave=this.run.time;}
@@ -76,12 +76,14 @@ export class RoverGame{
     }else if(this.screen==='field-workshop'){
       if(id==='close-field'){this.screen='play';this.clearInput();this.lastTime=null;}
       if(id.startsWith('field-tab:'))this.fieldTab=id.slice(10);
+      if(id==='field-page')this.rigPage=(this.rigPage+1)%2;
       if(id.startsWith('field-buy:')&&this.run.modify(id.slice(10))){this.audio?.play('upgrade');this.save();}
     }else if(this.screen==='upgrade'){
       if(id==='reroll'&&this.run.reroll())this.save();
       if(id.startsWith('pick:')&&this.run.choose(id.slice(5))){this.audio?.play('upgrade');this.bounce=1;this.clearInput();this.lastTime=null;this.screen=this.run.rogue.offer.length?'upgrade':'play';this.save();}
     }else if(this.screen==='map'){
-      if(id==='return-guide'){this.waypoint={...(this.run.survivalVersion?TOWN:WORLD).home};this.returnGuide=true;this.screen='play';this.clearInput();this.lastTime=null;}
+      if(id==='return-guide'&&!this.run.survivalVersion){this.waypoint={...WORLD.home};this.returnGuide=true;this.screen='play';this.clearInput();this.lastTime=null;}
+      if(id==='car-guide'&&this.run.survivalVersion){this.waypoint={x:this.run.player.x,y:this.run.player.y};this.screen='play';this.clearInput();this.lastTime=null;}
       if(['close-map','chart'].includes(id)){this.screen='play';this.clearInput();this.lastTime=null;this.returnGuide=false;}
     }else if(this.screen==='pause'){
       if(id==='resume'){this.screen=this.run.rogue.offer.length?'upgrade':'play';this.clearInput();this.lastTime=null;}

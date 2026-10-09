@@ -1,4 +1,4 @@
-import {clamp,angleDelta} from './data.js?v=13';
+import {clamp,angleDelta} from './data.js?v=14';
 
 export const DRIVE_RESPONSE=Object.freeze({accelerate:38,reverse:48,brake:66,turn:30,maxTurn:26,stop:3});
 

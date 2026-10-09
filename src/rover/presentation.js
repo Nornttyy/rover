@@ -1,5 +1,5 @@
-import {WORLD,clamp} from './data.js?v=13';
-import {followCamera} from './feel.js?v=13';
+import {WORLD,clamp} from './data.js?v=14';
+import {followCamera} from './feel.js?v=14';
 
 // Camera framing never changes world coordinates, collision or driving speed.
 export function frameWorld(camera,p,height,trailers,dt,{snap=false,reduced=false}={}){

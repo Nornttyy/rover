@@ -1,4 +1,4 @@
-import {clamp,angleDelta} from './data.js?v=13';
+import {clamp,angleDelta} from './data.js?v=14';
 
 export const STICK={dead:3,radius:32,follow:32};
 export function steerStick(joy,point){

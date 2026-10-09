@@ -1,12 +1,35 @@
-import {Expedition,STEP} from './core.js?v=12';
-import {DRIVE,statsFor,clamp,dist,angleTo,angleDelta} from './data.js?v=12';
-import {newRogue,rank,skill,damageScale,gunInterval,boostCooldown,pickupRadius,syncStats,rogueWeapons,firePrimary} from './rogue.js?v=12';
-import {driveMotion} from './drive.js?v=12';
-import {TOWN,ZOMBIES,FIELD_BY_ID,fieldPrice,streetBlocked,roomBlocked,roomLayout,validMods,survivalRoute,districtDoors,houseFromId,floorInfo} from './survival-data.js?v=12';
+import {Expedition,STEP} from './core.js?v=13';
+import {DRIVE,statsFor,clamp,dist,angleTo,angleDelta} from './data.js?v=13';
+import {newRogue,rank,skill,damageScale,gunInterval,boostCooldown,pickupRadius,syncStats,rogueWeapons,firePrimary} from './rogue.js?v=13';
+import {driveMotion} from './drive.js?v=13';
+import {TOWN,ZOMBIES,FIELD_BY_ID,fieldPrice,streetBlocked,roomBlocked,roomLayout,validMods,survivalRoute,districtDoors,houseFromId,floorInfo,INTERIOR_REVISION,LEGACY_ROOM_SIZES,safeRoomPoint} from './survival-data.js?v=13';
+
+function migrateInteriors(raw){
+  if(raw.interiorVersion===INTERIOR_REVISION)return true;
+  if(raw.interiorVersion!==undefined&&raw.interiorVersion!==1)return false;
+  if(!raw.rooms||typeof raw.rooms!=='object'||Array.isArray(raw.rooms))return false;
+  const scaled=(list,factor,layout)=>Array.isArray(list)?list.map(p=>{if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))throw new Error('Invalid interior position');return{...p,...safeRoomPoint({x:p.x*factor,y:p.y*factor},p.r||4,layout)};}):list;
+  for(const [key,room] of Object.entries(raw.rooms)){
+    const info=floorInfo(key);if(!info||!room||!Array.isArray(room.nodes))return false;
+    const layout=roomLayout(info.house,info.floor),factor=layout.w/LEGACY_ROOM_SIZES[info.house.type];
+    if(room.nodes.length!==layout.nodes.length||room.nodes.some((p,i)=>!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x*factor-layout.nodes[i].x)>1e-6||Math.abs(p.y*factor-layout.nodes[i].y)>1e-6))return false;
+    room.nodes=room.nodes.map((p,i)=>({...p,...layout.nodes[i]}));room.enemies=scaled(room.enemies,factor,layout);room.drops=scaled(room.drops,factor,layout);
+  }
+  if(raw.zone!=='street'){
+    const info=floorInfo(raw.zone+'@'+raw.floor);if(!info||!raw.hero)return false;
+    const layout=roomLayout(info.house,info.floor),oldSize=LEGACY_ROOM_SIZES[info.house.type],factor=layout.w/oldSize,legacy={...layout,w:oldSize,h:oldSize,blocks:layout.blocks.map(b=>({x:b.x/factor,y:b.y/factor,w:b.w/factor,h:b.h/factor}))};
+    // Validate against the old doorway rule before moving its occupant to the
+    // new collision geometry; a formerly valid doorway edge is not a bad save.
+    const x=raw.hero.x,y=raw.hero.y,doorway=x/oldSize>.43&&x/oldSize<.57&&y/oldSize>.84;
+    if(!Number.isFinite(x)||!Number.isFinite(y)||x<oldSize*.055+12||y<oldSize*.055+12||x>oldSize*.945-12||y>oldSize*(doorway?.965:.855)-12||legacy.blocks.some(b=>x+12>b.x&&x-12<b.x+b.w&&y+12>b.y&&y-12<b.y+b.h))return false;
+    Object.assign(raw.hero,safeRoomPoint({x:raw.hero.x*factor,y:raw.hero.y*factor},12,layout));raw.enemies=scaled(raw.enemies,factor,layout);raw.drops=scaled(raw.drops,factor,layout);raw.bullets=[];
+  }
+  raw.interiorVersion=INTERIOR_REVISION;return true;
+}
 
 export class SurvivalRun{
   constructor(modules=[],seed=9031){
-    this.survivalVersion=1;this.version=4;this.modules=[...modules];this.seed=seed>>>0;this.phase='play';this.result=null;this.time=0;this.mode='vehicle';this.zone='street';this.floor=1;
+    this.survivalVersion=1;this.interiorVersion=INTERIOR_REVISION;this.version=4;this.modules=[...modules];this.seed=seed>>>0;this.phase='play';this.result=null;this.time=0;this.mode='vehicle';this.zone='street';this.floor=1;
     const stats=statsFor(modules);this.player={x:TOWN.home.x,y:TOWN.home.y+100,a:0,vx:0,vy:0,r:23,hp:stats.hp,maxHp:stats.hp,speed:stats.speed,capacity:999999,cargo:0,invuln:0,lastHit:-9,repairUsed:0,boostTime:0,boostCooldown:0};
     this.hero={x:this.player.x+48,y:this.player.y,a:0,vx:0,vy:0,r:12,hp:100,maxHp:100,speed:154,invuln:0,boostTime:0,boostCooldown:0,ammo:90};
     this.supplies={wire:0,food:0,meds:0};this.rogue=newRogue();this.convoy={trailers:[],loose:[],freight:[],peak:0,boostId:0};this.rooms={};this.street=null;this.visits=0;
@@ -129,7 +152,7 @@ export class SurvivalRun{
   static restore(raw){
     if(!raw)return null;
     if(raw.survivalVersion!==1){const old=Expedition.restore(raw);if(!old)return null;const s=new SurvivalRun(old.modules,old.seed);s.player.cargo=old.player.cargo;s.player.hp=Math.min(s.player.maxHp,old.player.hp);return s;}
-    try{raw=structuredClone(raw);}catch{return null;}
+    try{raw=structuredClone(raw);if(!migrateInteriors(raw))return null;}catch{return null;}
     const numeric=(v,keys)=>v&&keys.every(k=>Number.isFinite(v[k])&&Math.abs(v[k])<1e8),actor=v=>numeric(v,['x','y','a','vx','vy','r','hp','maxHp','speed','invuln','boostTime','boostCooldown'])&&v.hp>0&&v.hp<=v.maxHp;
     if(raw.phase!=='play'||!validMods(raw.modules)||!['vehicle','foot'].includes(raw.mode)||raw.zone!=='street'&&!houseFromId(raw.zone)||raw.zone!=='street'&&raw.mode!=='foot'||!actor(raw.player)||!actor(raw.hero)||raw.player.r!==23||raw.hero.r!==12||raw.hero.maxHp!==100||!numeric(raw.player,['cargo','capacity','lastHit','repairUsed'])||raw.player.cargo<0||raw.player.cargo>999999||!Number.isInteger(raw.hero.ammo)||raw.hero.ammo<0||raw.hero.ammo>999||!numeric(raw,['time','id','fxId','kills','shots','spawnClock','spawnIndex','damageTaken','turretA','sideA','visits'])||!Number.isInteger(raw.seed)||raw.seed<0||raw.seed>4294967295||raw.time<0||raw.time>86400||!numeric(raw.supplies,['wire','food','meds'])||Object.values(raw.supplies).some(n=>!Number.isInteger(n)||n<0||n>999)||!raw.rogue?.levels||typeof raw.rogue.levels!=='object'||!Array.isArray(raw.rogue.offer)||raw.rogue.offer.length||raw.rogue.level!==1||raw.rogue.xp!==0||raw.rogue.next!==8||!Number.isFinite(raw.rogue.nextBoss)||raw.rogue.shield!==0)return null;
     for(const [id,n] of Object.entries(raw.rogue.levels))if(!FIELD_BY_ID[id]||!Number.isInteger(n)||n<1||n>FIELD_BY_ID[id].max||FIELD_BY_ID[id].max>=999)return null;

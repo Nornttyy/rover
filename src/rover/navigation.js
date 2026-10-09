@@ -1,4 +1,4 @@
-import {WORLD,dist} from './data.js?v=12';
+import {WORLD,dist} from './data.js?v=13';
 const SIZE=48,COLS=WORLD.w/SIZE,ROWS=WORLD.h/SIZE,cache=new WeakMap();let sharedWalk=null;
 const neighbors=[[1,0],[-1,0],[0,1],[0,-1]];
 function index(p){return Math.max(0,Math.min(ROWS-1,Math.floor(p.y/SIZE)))*COLS+Math.max(0,Math.min(COLS-1,Math.floor(p.x/SIZE)));}

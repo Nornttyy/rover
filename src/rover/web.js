@@ -1,5 +1,5 @@
-import {RoverGame} from './game.js?v=12';
-import {createRoverAudio} from './audio.js?v=12';
+import {RoverGame} from './game.js?v=13';
+import {createRoverAudio} from './audio.js?v=13';
 const canvas=document.getElementById('rover');
 const storage={get(key){try{return JSON.parse(localStorage.getItem(key));}catch{return null;}},set(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}}};
 const createSurface=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};

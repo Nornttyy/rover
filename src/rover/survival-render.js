@@ -1,10 +1,10 @@
-import {RoverRenderer} from './render.js?v=12';
-import {RoverTerrain,mapCrop} from './terrain.js?v=12';
-import {EndlessTerrain} from './endless-terrain.js?v=12';
-import {clamp,dist} from './data.js?v=12';
-import {followCamera,STICK} from './feel.js?v=12';
-import {gunInterval,rank,skill} from './rogue.js?v=12';
-import {TOWN,ZOMBIES,SUPPLIES,FIELD_MODS,fieldPrice,houseFromId,houseCleared} from './survival-data.js?v=12';
+import {RoverRenderer} from './render.js?v=13';
+import {RoverTerrain,mapCrop} from './terrain.js?v=13';
+import {EndlessTerrain} from './endless-terrain.js?v=13';
+import {clamp,dist} from './data.js?v=13';
+import {followCamera,STICK} from './feel.js?v=13';
+import {gunInterval,rank,skill} from './rogue.js?v=13';
+import {TOWN,ZOMBIES,SUPPLIES,FIELD_MODS,fieldPrice,houseFromId,houseCleared} from './survival-data.js?v=13';
 const C={ink:'#25352f',white:'#f4f4e7',green:'#b6d5a2',orange:'#e5ac70',red:'#e18a7b',muted:'#a8b8ad'};
 export const ACTOR_BOXES={hero:[28,20,415,415],walker:[490,43,399,392],runner:[920,12,315,446],spitter:[1285,28,474,426],brute:[17,445,487,406],bag:[537,485,343,364],meds:[901,496,393,323],parts:[1357,496,358,358]};
 export class SurvivalRenderer extends RoverRenderer{
@@ -20,9 +20,9 @@ export class SurvivalRenderer extends RoverRenderer{
   world(g,dt){
     const s=g.run;if(!s)return;const p=s.actor,c=this.ctx,h=this.layout.h,world=s.bounds,indoor=s.zone!=='street',scene=s.zone+'@'+s.floor,changed=this.zone!==scene;
     followCamera(this.camera,p,dt,{snap:g.justStarted||changed,reduced:g.reducedMotion});this.zone=scene;
-    const target=indoor?Math.max(.92,h/world.h):s.mode==='foot'?.92:.8;if(changed||g.justStarted||!Number.isFinite(this.camera.zoom))this.camera.zoom=target;else this.camera.zoom+=(target-this.camera.zoom)*(1-Math.exp(-dt*4));
-    const z=this.camera.zoom,ay=68+(h-68)*.46;if(indoor){this.camera.x=clamp(this.camera.x,195/z,world.w-195/z);this.camera.y=clamp(this.camera.y,ay/z,world.h-(h-ay)/z);}
-    const shake=g.reducedMotion?0:g.feel.kick;let ox=195-this.camera.x*z+Math.sin(g.feel.time*63)*shake*.5,oy=ay-this.camera.y*z+Math.cos(g.feel.time*59)*shake*.35;if(indoor){ox=clamp(ox,390-world.w*z,0);oy=clamp(oy,h-world.h*z,0);}const project=a=>({x:ox+a.x*z,y:oy+a.y*z});g.projection={ox,oy,z,height:h};
+    const target=indoor||s.mode==='foot'?.92:.8;if(changed||g.justStarted||!Number.isFinite(this.camera.zoom))this.camera.zoom=target;else this.camera.zoom+=(target-this.camera.zoom)*(1-Math.exp(-dt*4));
+    const z=this.camera.zoom,ay=68+(h-68)*.46;if(indoor){this.camera.x=world.w*z<=390?world.w/2:clamp(this.camera.x,195/z,world.w-195/z);this.camera.y=world.h*z<=h?world.h/2:clamp(this.camera.y,ay/z,world.h-(h-ay)/z);}
+    const shake=g.reducedMotion?0:g.feel.kick;let ox=195-this.camera.x*z+Math.sin(g.feel.time*63)*shake*.5,oy=ay-this.camera.y*z+Math.cos(g.feel.time*59)*shake*.35;if(indoor){ox=world.w*z<=390?(390-world.w*z)/2:clamp(ox,390-world.w*z,0);oy=world.h*z<=h?(h-world.h*z)/2:clamp(oy,h-world.h*z,0);c.fillStyle='#25352f';c.fillRect(0,0,390,h);}const project=a=>({x:ox+a.x*z,y:oy+a.y*z});g.projection={ox,oy,z,height:h};
     const visible=(a,pad=90)=>{const q=project(a);return q.x>-pad&&q.x<390+pad&&q.y>-pad&&q.y<h+pad;};
     c.save();c.translate(ox,oy);c.scale(z,z);const bounds={x:-ox/z,y:-oy/z,w:390/z,h:h/z};
     if(indoor)this.roomImage(c,bounds,world);else this.terrain.draw(c,bounds);

@@ -1,7 +1,12 @@
-import {MODULE_BY_ID,powerOf,clamp,dist} from './data.js?v=12';
+import {MODULE_BY_ID,powerOf,clamp,dist} from './data.js?v=13';
 
 export const TOWN={w:1536,h:1536,home:{x:768,y:768,r:85},endless:true};
-export const ROOM={w:1600,h:1600,door:{x:800,y:1464,r:65}};
+export const INTERIOR_REVISION=2;
+// Keep furniture at a pedestrian-sized scale. A denser floor plan or additional
+// floors provides more rooms; multiplying a whole illustration does not.
+export const ROOM_SIZES={small:768,large:1024,villa:1152,tower:1152};
+export const LEGACY_ROOM_SIZES={small:1600,large:2400,villa:2800,tower:3200};
+export const ROOM={w:ROOM_SIZES.small,h:ROOM_SIZES.small,door:{x:ROOM_SIZES.small*.5,y:ROOM_SIZES.small*.915,r:44}};
 export const HOUSE_TYPES={small:{name:'小房子',floors:[1,1]},large:{name:'大房子',floors:[1,1]},villa:{name:'别墅',floors:[2,3]},tower:{name:'住宅楼',floors:[5,8]}};
 // Entrances sit on the curb outside the illustrated roofs; interiors are real explorable spaces.
 export const COMPOUNDS=[{x:.098,y:.093,w:.358,h:.328},{x:.543,y:.093,w:.360,h:.328},{x:.097,y:.519,w:.358,h:.336},{x:.543,y:.519,w:.360,h:.336}];
@@ -52,7 +57,7 @@ const verticalWalls=(xs,segments)=>xs.flatMap(x=>segments.map(([y,h])=>[x,y,.027
 const horizontalWalls=(ys,leftEnd,rightStart)=>ys.flatMap(([y,h])=>[[.04,y,leftEnd-.04,h],[rightStart,y,.96-rightStart,h]]);
 export function roomLayout(house,floor=1){
   const type=house?.type||'small',mirror=type!=='small'&&((house.tx+house.ty+house.index+floor)&1)===1,key=type+':'+floor+':'+Number(mirror);if(ROOMS_CACHE.has(key))return ROOMS_CACHE.get(key);
-  const size={small:1600,large:2400,villa:2800,tower:3200}[type];
+  const size=ROOM_SIZES[type];
   const asset=type==='small'?'interior':type==='large'?'interiorLarge':type==='villa'?(floor===1?'interiorVilla':'interiorVillaUpper'):'interiorTower';
   let boxes,nodes,spawnPoints;
   if(type==='small'){
@@ -78,7 +83,9 @@ export function roomLayout(house,floor=1){
   }else if(type==='villa'){
     boxes=[...verticalWalls([.38,.597],[[.024,.195],[.273,.150],[.479,.209],[.748,.103]]),...horizontalWalls([[.318,.023],[.561,.027]],.405,.623),
       [.10,.078,.12,.175],[.264,.046,.106,.104],[.633,.046,.094,.107],[.784,.076,.128,.175],
-      [.125,.36,.254,.095],[.059,.43,.08,.123],[.246,.49,.041,.060],[.308,.513,.065,.04],
+      // The shelving base is narrower than its upper silhouette; keep the door
+      // approach clear at the normal furniture scale.
+      [.125,.36,.225,.095],[.059,.43,.08,.123],[.246,.49,.041,.060],[.308,.513,.065,.04],
       [.65,.354,.096,.096],[.762,.354,.131,.10],[.62,.486,.075,.064],[.884,.429,.059,.11],
       [.06,.61,.055,.203],[.112,.611,.18,.134],[.14,.769,.052,.08],
       [.667,.613,.088,.12],[.766,.615,.082,.116],[.852,.61,.083,.132],[.874,.740,.058,.071],
@@ -98,8 +105,8 @@ export function roomLayout(house,floor=1){
     spawnPoints=[[.31,.22],[.73,.24],[.28,.445],[.74,.43],[.32,.75],[.73,.71],[.50,.42],[.50,.61]];
   }
   const point=([x,y])=>({x:(mirror?1-x:x)*size,y:y*size});
-  const layout={w:size,h:size,asset,mirror,type,door:{x:size*.50,y:size*.915,r:65},entry:{x:size*.50,y:size*.88},
-    up:type==='villa'||type==='tower'?{...point([.46,.218]),r:65}:null,down:type==='villa'||type==='tower'?{...point([.54,.218]),r:65}:null,
+  const layout={w:size,h:size,asset,mirror,type,door:{x:size*.50,y:size*.915,r:44},entry:{x:size*.50,y:size*.855},
+    up:type==='villa'||type==='tower'?{...point([.46,.218]),r:32}:null,down:type==='villa'||type==='tower'?{...point([.54,.218]),r:32}:null,
     upArrival:{x:size*.50,y:size*.295},downArrival:{x:size*.50,y:size*.295},
     blocks:boxes.map(b=>rect(mirror?[1-b[0]-b[2],b[1],b[2],b[3]]:b,size)),nodes:nodes.map(point),spawnPoints:spawnPoints.map(point)};
   // Only finite layout variants are cached, never world coordinates.
@@ -107,14 +114,23 @@ export function roomLayout(house,floor=1){
 }
 export const ROOM_BLOCKS=roomLayout({type:'small'}).blocks;
 export function roomBlocked(x,y,r=12,layout=roomLayout(null)){
-  const nx=x/layout.w,ny=y/layout.h,doorway=nx>.43&&nx<.57&&ny>.84;
+  // The central doorway is continuous with the floor. A separate y threshold
+  // would leave a thin impassable strip when the illustration is not oversized.
+  const nx=x/layout.w,doorway=nx>.43+r/layout.w&&nx<.57-r/layout.w;
   return x<layout.w*.055+r||y<layout.h*.055+r||x>layout.w*.945-r||y>layout.h*(doorway?.965:.855)-r||layout.blocks.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h);
+}
+// After a scale correction, a saved centre can be too close to a wall for the
+// unchanged actor radius. Nudge it onto the closest free spot, not a new run.
+export function safeRoomPoint(p,r,layout){
+  if(!roomBlocked(p.x,p.y,r,layout))return{x:p.x,y:p.y};
+  for(let d=4;d<=192;d+=4)for(let i=0;i<32;i++){const a=i*Math.PI/16,q={x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d};if(!roomBlocked(q.x,q.y,r,layout))return q;}
+  return {...layout.entry};
 }
 export function validMods(modules){return Array.isArray(modules)&&new Set(modules).size===modules.length&&modules.every(id=>MODULE_BY_ID[id])&&powerOf(modules)<=4;}
 
 const cache=new WeakMap(),neighbors=[[1,0],[-1,0],[0,1],[0,-1]];
 function grid(s,target,radius){
-  const indoor=s.zone!=='street',tx=Math.floor(target.x/TOWN.w),ty=Math.floor(target.y/TOWN.h),scene=indoor?s.roomKey:tx+','+ty,size=indoor?16:32,r=radius<=12?12:radius<=17?17:radius<=23?23:29;
+  const indoor=s.zone!=='street',tx=Math.floor(target.x/TOWN.w),ty=Math.floor(target.y/TOWN.h),scene=indoor?s.roomKey:tx+','+ty,size=indoor?8:32,r=radius<=12?12:radius<=17?17:radius<=23?23:29;
   let state=cache.get(s);if(state?.scene!==scene){state={scene,grids:new Map()};cache.set(s,state);}if(state.grids.has(r))return state.grids.get(r);
   const cols=indoor?Math.ceil(s.bounds.w/size):144,rows=indoor?Math.ceil(s.bounds.h/size):cols,ox=indoor?0:(tx-1)*TOWN.w,oy=indoor?0:(ty-1)*TOWN.h,walk=new Uint8Array(cols*rows);
   for(let i=0;i<walk.length;i++)walk[i]=Number(!s.blocked(ox+(i%cols+.5)*size,oy+(Math.floor(i/cols)+.5)*size,r));

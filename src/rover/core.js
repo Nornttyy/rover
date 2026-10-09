@@ -1,8 +1,8 @@
-import {WORLD,MAP_REVISION,LEGACY_WORLD,LEGACY2_WORLD,LEGACY_CACHES,LEGACY2_CACHES,DRIVE,ENEMIES,CACHES,terrainBlocked,MODULE_BY_ID,powerOf,clamp,dist,angleTo,angleDelta,statsFor} from './data.js?v=12';
-import {newConvoy,attach,detach,logisticsContext,logisticsStep,ramImpacts,convoyTarget,hitTarget,hurtTrailer,cleanConvoy} from './logistics.js?v=12';
-import {navigationTarget,roadPoint} from './navigation.js?v=12';
-import {newRogue,rank,skill,damageScale,boostCooldown,pickupRadius,syncStats,grantXP,choose,reroll,rogueWeapons,firePrimary,cleanRogue} from './rogue.js?v=12';
-import {driveMotion} from './drive.js?v=12';
+import {WORLD,MAP_REVISION,LEGACY_WORLD,LEGACY2_WORLD,LEGACY_CACHES,LEGACY2_CACHES,DRIVE,ENEMIES,CACHES,terrainBlocked,MODULE_BY_ID,powerOf,clamp,dist,angleTo,angleDelta,statsFor} from './data.js?v=13';
+import {newConvoy,attach,detach,logisticsContext,logisticsStep,ramImpacts,convoyTarget,hitTarget,hurtTrailer,cleanConvoy} from './logistics.js?v=13';
+import {navigationTarget,roadPoint} from './navigation.js?v=13';
+import {newRogue,rank,skill,damageScale,boostCooldown,pickupRadius,syncStats,grantXP,choose,reroll,rogueWeapons,firePrimary,cleanRogue} from './rogue.js?v=13';
+import {driveMotion} from './drive.js?v=13';
 export const STEP=1/60;
 export class Expedition{
   constructor(modules=[],seed=9031){

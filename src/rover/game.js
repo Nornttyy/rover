@@ -1,12 +1,12 @@
-import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=12';
-import {Expedition,STEP} from './core.js?v=12';
-import {IMAGES} from './assets.js?v=12';
-import {RoverRenderer} from './render.js?v=12';
-import {RoverFeel,steerStick} from './feel.js?v=12';
-import {roadPoint} from './navigation.js?v=12';
-import {SurvivalRun} from './survival.js?v=12';
-import {SurvivalRenderer} from './survival-render.js?v=12';
-import {TOWN,safeStreet} from './survival-data.js?v=12';
+import {SAVE_KEY,WORLD,DRIVE,MODULE_BY_ID,newProfile,cleanProfile,purchase,equip,powerOf,clamp} from './data.js?v=13';
+import {Expedition,STEP} from './core.js?v=13';
+import {IMAGES} from './assets.js?v=13';
+import {RoverRenderer} from './render.js?v=13';
+import {RoverFeel,steerStick} from './feel.js?v=13';
+import {roadPoint} from './navigation.js?v=13';
+import {SurvivalRun} from './survival.js?v=13';
+import {SurvivalRenderer} from './survival-render.js?v=13';
+import {TOWN,safeStreet} from './survival-data.js?v=13';
 export class RoverGame{
   constructor({canvas,createImage,createSurface,storage,audio,reducedMotion=false,runType=SurvivalRun,rendererType=SurvivalRenderer}){
     this.canvas=canvas;this.createImage=createImage;this.images={};this.storage=storage;this.audio=audio;this.reducedMotion=reducedMotion;

@@ -1,4 +1,4 @@
-import {WORLD,clamp} from './data.js?v=12';
+import {WORLD,clamp} from './data.js?v=13';
 
 // One complete generated illustration. Cropping is camera culling, not tile assembly:
 // every curb, road, garden, factory and recovery roof is already in this PNG.
